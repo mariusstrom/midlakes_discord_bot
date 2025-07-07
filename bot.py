@@ -22,6 +22,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user.name}")
+    guild = bot.get_guild(GUILD_ID)
+    if guild:
+        await guild.me.edit(nick="Fourth Official")
+        await bot.change_presence(
+            activity=discord.Activity(type=discord.ActivityType.watching, name="the Midlakes United schedule")
+        )
     check_calendar.start()
 
 def fetch_static_html(url):
