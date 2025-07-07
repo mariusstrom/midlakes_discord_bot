@@ -14,7 +14,7 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_ID = int(os.getenv("GUILD_ID"))
 SCHEDULE_URL = os.getenv("SCHEDULE_URL") or "https://www.midlakesunited.com/schedule/"
-ANNOUNCEMENTS_CHANNEL_NAME = "announcements"
+ANNOUNCEMENTS_CHANNEL_NAME = os.getenv("ANNOUNCE_CHANNEL") or "announcements"
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -24,11 +24,11 @@ async def on_ready():
     print(f"Logged in as {bot.user.name}")
     guild = bot.get_guild(GUILD_ID)
     if guild:
+        print(f"Connected to guild: {guild.name} (ID: {guild.id})")
         await guild.me.edit(nick="Fourth Official")
-        await bot.change_presence(
-            activity=discord.Activity(type=discord.ActivityType.watching, name="the Midlakes United schedule")
-        )
+        print(f"Bot nickname set to {guild.me.nick}")
     check_calendar.start()
+    update_presence.start()
 
 def fetch_static_html(url):
     resp = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -131,5 +131,30 @@ async def refresh_events(ctx):
         await ctx.send("✅ Refresh complete.")
     else:
         await ctx.send("❌ You don't have permission to run this command.")
+
+@tasks.loop(hours=1)
+async def update_presence():
+    try:
+        guild = bot.get_guild(GUILD_ID)
+        if not guild:
+            print("Guild not found for presence update.")
+            return
+
+        existing = await guild.fetch_scheduled_events()
+        upcoming = sorted([e for e in existing if e.start_time > discord.utils.utcnow()], key=lambda x: x.start_time)
+
+        if upcoming:
+            next_event = upcoming[0]
+            delta = next_event.start_time - discord.utils.utcnow()
+            hours = delta.total_seconds() // 3600
+            status_msg = f"Matchday in {int(hours)}h: {next_event.name}"
+        else:
+            status_msg = "the Midlakes United Schedule"
+
+        await bot.change_presence(
+            activity=discord.Activity(type=discord.ActivityType.watching, name=status_msg)
+        )
+    except Exception as ex:
+        print(f"Error updating presence: {ex}")
 
 bot.run(TOKEN)
