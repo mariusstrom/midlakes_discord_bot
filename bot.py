@@ -47,7 +47,17 @@ logger = logging.getLogger(__name__)
 
 # ==================== ENVIRONMENT VARIABLES ====================
 TOKEN = os.getenv("DISCORD_TOKEN")
-GUILD_ID = int(os.getenv("GUILD_ID"))
+if not TOKEN:
+    raise SystemExit("ERROR: DISCORD_TOKEN environment variable is not set. Check your .env file.")
+
+_guild_id_raw = os.getenv("GUILD_ID")
+if not _guild_id_raw:
+    raise SystemExit("ERROR: GUILD_ID environment variable is not set. Check your .env file.")
+try:
+    GUILD_ID = int(_guild_id_raw)
+except ValueError:
+    raise SystemExit(f"ERROR: GUILD_ID must be a valid integer, got: '{_guild_id_raw}'")
+
 SCHEDULE_URL = os.getenv("SCHEDULE_URL") or "https://www.midlakesunited.com/schedule/"
 ANNOUNCEMENTS_CHANNEL_NAME = os.getenv("ANNOUNCE_CHANNEL") or "announcements"
 
